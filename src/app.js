@@ -49,7 +49,10 @@ app.get("/messages", async (req, res) => {
     if (req.query.limit) {
         if(Number(req.query.limit) === 0 || req.query.limit < 0 || isNaN(req.query.limit)) return res.status(422).send("Value of limit is invalid");
         const limitMessages = messages.reverse().slice(0, req.query.limit);
-        return res.status(201).send(limitMessages.reverse() );
+        
+        const privateMessageExist = await db.collection("messages").find({ $or: [{ to: user, type: "private_message" },{from: user, type: "private_message"}]}).toArray();
+        console.log(privateMessageExist)
+        if (privateMessageExist.length > 0) return res.status(201).send(limitMessages.reverse() );
     }
     res.send(messages);
 });
