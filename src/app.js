@@ -15,7 +15,7 @@ let db;
 await mongoClient.connect();
 db = mongoClient.db();
 
-//setTimeout(removeOldUser, 15000);
+setTimeout(removeOldUser, 15000);
 
 async function removeOldUser(){
     const users = await db.collection("participants").find().toArray();
