@@ -44,11 +44,11 @@ app.get('/participants', (req, res) => {
 
 app.get("/messages", async (req, res) => {    
     if (req.query.limit) {
-        if(req.query.limit === 0 || req.query.limit < 0) return res.status(422).send("Value of limit is invalid")
+        if(Number(req.query.limit) === 0 || req.query.limit < 0 || isNaN(req.query.limit)) return res.status(422).send("Value of limit is invalid")
         const {user} = req.headers;
         const messages = await db.collection("messages").find({ $or: [{ to: user, type: "private_message" }, { type: "message" }, { type: "status" }] }).toArray();
-        const limitMessages = messages.slice(0, req.query.limit);
-        res.send(limitMessages);
+        const limitMessages = messages.reverse().slice(0, req.query.limit);
+        return res.send(limitMessages);
     }
     const messages = await db.collection("messages").find().toArray();
     res.send(messages);
@@ -108,7 +108,7 @@ app.post("/messages", async (req, res) => {
 app.post("/status", async (req, res) => {
     const { user } = req.headers;
     const userExist = await db.collection("participants").find({ name: user }).toArray();
-    if (userExist.length !== 0) return res.status(404).send("user already exists");
+    if (userExist.length == 0) return res.status(404).send("user already exists or not registered");
 
     try {
         await db.collection("participants").updateOne({ name: user }, { $set: { lastStatus: Date.now() } });
