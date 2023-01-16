@@ -48,7 +48,7 @@ app.get("/messages", async (req, res) => {
         const {user} = req.headers;
         const messages = await db.collection("messages").find({ $or: [{ to: user, type: "private_message" }, { type: "message" }, { type: "status" }] }).toArray();
         const limitMessages = messages.reverse().slice(0, req.query.limit);
-        return res.send(limitMessages);
+        return res.status(201).send(limitMessages);
     }
     const messages = await db.collection("messages").find().toArray();
     res.send(messages);
