@@ -15,7 +15,7 @@ let db;
 await mongoClient.connect();
 db = mongoClient.db();
 
-setTimeout(removeOldUser, 15000);
+//setTimeout(removeOldUser, 15000);
 
 async function removeOldUser(){
     const users = await db.collection("participants").find().toArray();
@@ -38,8 +38,8 @@ app.get('/participants', (req, res) => {
     db.collection("participants")
         .find()
         .toArray()
-        .then(dados => res.send(dados)
-            .catch(err => res.status(500).send(err)));
+        .then(dados => res.send(dados))
+        .catch(err => res.status(500).send(err));
 });
 
 app.get("/messages", async(req, res) => {
@@ -49,14 +49,13 @@ app.get("/messages", async(req, res) => {
 
 app.get("/messages/?:limit", async(req, res) => {
     const {user} = req.headers;
-    const messages = await db.collection("messages").find({$or:[{to: user, type:"private_message"},{type:"message"}]}).toArray();
+    const messages = await db.collection("messages").find({$or:[{to: user, type:"private_message"},{type:"message"}, {type:"status"}]}).toArray();
     const limitMessages = messages.slice(0, req.query.limit);
     res.send(limitMessages);
 });
 
 app.post("/participants", async (req, res) => {
     const { name } = req.body;
-    console.log(name);
 
     const userExist = await db.collection("participants").find({ name }).toArray();
 
@@ -77,6 +76,7 @@ app.post("/participants", async (req, res) => {
         const userExist = await db.collection("participants").findOne({ name });
         if (userExist) return res.status(409).send("user conflict");
         db.collection("participants").insertOne({ name, lastStatus: Date.now() });
+        await db.collection("messages").insertOne({ from: name, to: "todos", text:"entra na sala...", type:"status", time: dayjs().format("HH:mm:ss")});
         res.status(201).send("OK");
     } catch (err) { res.status(500) };
 });
@@ -87,7 +87,7 @@ app.post("/messages", async (req, res) => {
 
     const userExist = await db.collection("participants").find({ name: user }).toArray();
     if(userExist.length === 0) return res.status(422).send("user not found");
-    if(to === "") return res.status(422).send("to: is empty");
+    if(to === "" || to !== "todos" && to !==user) return res.status(422).send("to: is empty");
     if(type !== "private_message" && type !== "message") return res.status(422).send("duty type private_message or message");
 
     const schema = Joi.object({
