@@ -43,14 +43,14 @@ app.get('/participants', (req, res) => {
 });
 
 app.get("/messages", async (req, res) => {    
+    const {user} = req.headers;
+    const messages = await db.collection("messages").find({ $or: [{ to: user, type: "private_message" },{from: user}, { type: "message" }, { type: "status" }] }).toArray();
+
     if (req.query.limit) {
-        if(Number(req.query.limit) === 0 || req.query.limit < 0 || isNaN(req.query.limit)) return res.status(422).send("Value of limit is invalid")
-        const {user} = req.headers;
-        const messages = await db.collection("messages").find({ $or: [{ to: user, type: "private_message" }, { type: "message" }, { type: "status" }] }).toArray();
+        if(Number(req.query.limit) === 0 || req.query.limit < 0 || isNaN(req.query.limit)) return res.status(422).send("Value of limit is invalid");
         const limitMessages = messages.reverse().slice(0, req.query.limit);
-        return res.status(201).send(limitMessages);
+        return res.status(201).send(limitMessages.reverse() );
     }
-    const messages = await db.collection("messages").find().toArray();
     res.send(messages);
 });
 
