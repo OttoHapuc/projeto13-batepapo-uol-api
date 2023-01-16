@@ -76,7 +76,7 @@ app.post("/participants", async (req, res) => {
         const userExist = await db.collection("participants").findOne({ name });
         if (userExist) return res.status(409).send("user conflict");
         db.collection("participants").insertOne({ name, lastStatus: Date.now() });
-        await db.collection("messages").insertOne({ from: name, to: "todos", text:"entra na sala...", type:"status", time: dayjs().format("HH:mm:ss")});
+        await db.collection("messages").insertOne({ from: name, to: "Todos", text:"entra na sala...", type:"status", time: dayjs().format("HH:mm:ss")});
         res.status(201).send("OK");
     } catch (err) { res.status(500) };
 });
@@ -87,7 +87,7 @@ app.post("/messages", async (req, res) => {
 
     const userExist = await db.collection("participants").find({ name: user }).toArray();
     if(userExist.length === 0) return res.status(422).send("user not found");
-    if(to === "" || to !== "todos" && to !==user) return res.status(422).send("to: is empty");
+    if(to === "" || to !== "Todos" && to !==user) return res.status(422).send("to: is empty");
     if(type !== "private_message" && type !== "message") return res.status(422).send("duty type private_message or message");
 
     const schema = Joi.object({
