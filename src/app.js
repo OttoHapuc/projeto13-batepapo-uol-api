@@ -13,16 +13,16 @@ const PORT = 5000;
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
 let db;
 await mongoClient.connect();
-db = mongoClient.db("trabalhoUOL");
+db = mongoClient.db();
 
 setTimeout(removeOldUser, 15000);
 
 async function removeOldUser(){
-    const users = await db.collection("users").find().toArray();
+    const users = await db.collection("participants").find().toArray();
 
     users.forEach(user => {
         if((Date.now() - user.lastStatus) > 10000){
-            db.collection("users").deleteOne({name: user.name});
+            db.collection("participants").deleteOne({name: user.name});
             db.collection("messages").insertOne({
                 from: user.name,
                 to:"todos",
@@ -35,7 +35,7 @@ async function removeOldUser(){
 }
 
 app.get('/participants', (req, res) => {
-    db.collection("users")
+    db.collection("participants")
         .find()
         .toArray()
         .then(dados => res.send(dados)
@@ -58,7 +58,7 @@ app.post("/participants", async (req, res) => {
     const { name } = req.body;
     console.log(name);
 
-    const userExist = await db.collection("users").find({ name }).toArray();
+    const userExist = await db.collection("participants").find({ name }).toArray();
 
     if (userExist.length !== 0) return res.status(409).send("user already exists");
 
@@ -74,9 +74,9 @@ app.post("/participants", async (req, res) => {
     }
 
     try {
-        const userExist = await db.collection("users").findOne({ name });
+        const userExist = await db.collection("participants").findOne({ name });
         if (userExist) return res.status(409).send("user conflict");
-        db.collection("users").insertOne({ name, lastStatus: Date.now() });
+        db.collection("participants").insertOne({ name, lastStatus: Date.now() });
         res.status(201).send("OK");
     } catch (err) { res.status(500) };
 });
@@ -85,7 +85,7 @@ app.post("/messages", async (req, res) => {
     const { to, text, type } = req.body;
     const { user } = req.headers;
 
-    const userExist = await db.collection("users").find({ name: user }).toArray();
+    const userExist = await db.collection("participants").find({ name: user }).toArray();
     if(userExist.length === 0) return res.status(422).send("user not found");
     if(to === "") return res.status(422).send("to: is empty");
     if(type !== "private_message" && type !== "message") return res.status(422).send("duty type private_message or message");
@@ -107,11 +107,11 @@ app.post("/messages", async (req, res) => {
 
 app.post("/status", async(req, res) => {
     const {user} = req.headers;
-    const userExist = await db.collection("users").find({ name: user }).toArray();
+    const userExist = await db.collection("participants").find({ name: user }).toArray();
     if (userExist.length !== 0) return res.status(404).send("user already exists");
 
     try{
-        await db.collection("users").updateOne({ name: user},{$set: {lastStatus: Date.now()} });
+        await db.collection("participants").updateOne({ name: user},{$set: {lastStatus: Date.now()} });
         res.send("OK");
     } catch (err) { res.status(500) };
 })
