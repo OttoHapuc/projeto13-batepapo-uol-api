@@ -17,15 +17,15 @@ db = mongoClient.db();
 
 setTimeout(removeOldUser, 15000);
 
-async function removeOldUser(){
+async function removeOldUser() {
     const users = await db.collection("participants").find().toArray();
 
     users.forEach(user => {
-        if((Date.now() - user.lastStatus) > 10000){
-            db.collection("participants").deleteOne({name: user.name});
+        if ((Date.now() - user.lastStatus) > 10000) {
+            db.collection("participants").deleteOne({ name: user.name });
             db.collection("messages").insertOne({
                 from: user.name,
-                to:"todos",
+                to: "todos",
                 text: "sai da sala...",
                 type: "status",
                 time: dayjs().format("HH:mm:ss")
@@ -42,16 +42,16 @@ app.get('/participants', (req, res) => {
         .catch(err => res.status(500).send(err));
 });
 
-app.get("/messages", async(req, res) => {
+app.get("/messages", async (req, res) => {    
+    if (req.query.limit) {
+        if(req.query.limit === 0 || req.query.limit < 0) return res.status(422).send("Value of limit is invalid")
+        const {user} = req.headers;
+        const messages = await db.collection("messages").find({ $or: [{ to: user, type: "private_message" }, { type: "message" }, { type: "status" }] }).toArray();
+        const limitMessages = messages.slice(0, req.query.limit);
+        res.send(limitMessages);
+    }
     const messages = await db.collection("messages").find().toArray();
     res.send(messages);
-});
-
-app.get("/messages/?:limit", async(req, res) => {
-    const {user} = req.headers;
-    const messages = await db.collection("messages").find({$or:[{to: user, type:"private_message"},{type:"message"}, {type:"status"}]}).toArray();
-    const limitMessages = messages.slice(0, req.query.limit);
-    res.send(limitMessages);
 });
 
 app.post("/participants", async (req, res) => {
@@ -76,7 +76,7 @@ app.post("/participants", async (req, res) => {
         const userExist = await db.collection("participants").findOne({ name });
         if (userExist) return res.status(409).send("user conflict");
         db.collection("participants").insertOne({ name, lastStatus: Date.now() });
-        await db.collection("messages").insertOne({ from: name, to: "Todos", text:"entra na sala...", type:"status", time: dayjs().format("HH:mm:ss")});
+        await db.collection("messages").insertOne({ from: name, to: "Todos", text: "entra na sala...", type: "status", time: dayjs().format("HH:mm:ss") });
         res.status(201).send("OK");
     } catch (err) { res.status(500) };
 });
@@ -86,9 +86,9 @@ app.post("/messages", async (req, res) => {
     const { user } = req.headers;
 
     const userExist = await db.collection("participants").find({ name: user }).toArray();
-    if(userExist.length === 0) return res.status(422).send("user not found");
-    if(to === "" || to !== "Todos" && to !==user) return res.status(422).send("to: is empty");
-    if(type !== "private_message" && type !== "message") return res.status(422).send("duty type private_message or message");
+    if (userExist.length === 0) return res.status(422).send("user not found");
+    if (to === "" || to !== "Todos" && to !== user) return res.status(422).send("to: is empty");
+    if (type !== "private_message" && type !== "message") return res.status(422).send("duty type private_message or message");
 
     const schema = Joi.object({
         text: Joi.string().min(1).required()
@@ -105,13 +105,13 @@ app.post("/messages", async (req, res) => {
     } catch (err) { res.status(500) };
 });
 
-app.post("/status", async(req, res) => {
-    const {user} = req.headers;
+app.post("/status", async (req, res) => {
+    const { user } = req.headers;
     const userExist = await db.collection("participants").find({ name: user }).toArray();
     if (userExist.length !== 0) return res.status(404).send("user already exists");
 
-    try{
-        await db.collection("participants").updateOne({ name: user},{$set: {lastStatus: Date.now()} });
+    try {
+        await db.collection("participants").updateOne({ name: user }, { $set: { lastStatus: Date.now() } });
         res.send("OK");
     } catch (err) { res.status(500) };
 })
