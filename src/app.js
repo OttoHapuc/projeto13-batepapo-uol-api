@@ -51,7 +51,7 @@ app.get("/messages", async (req, res) => {
         const privateMessageExist = await db.collection("messages").find({ $or: [{ to: user, type: "private_message" },{from: user, type: "private_message"}]}).toArray();
         const limitMessages = messages.reverse().slice(0, req.query.limit);
         if (privateMessageExist.length > 0) return res.status(201).send(limitMessages.reverse() );
-        return res.status(200).send(limitMessages.reverse())
+        return res.status(200).send(limitMessages)
     }
     res.send(messages);
 });
